@@ -1,0 +1,386 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Key & Get Key Configuration
+local CORRECT_KEY = "VenyxHubKeyLsjwowoLalwowjaoJslwiPejwbwjwoi"
+local GET_KEY_LINK = "https://link4m.net/qs9jhsaT"
+local HUB_URL = "https://raw.githubusercontent.com/tienkhanh1/Venyx/main/VenyxHub"
+
+-- Silent 24-Hour Key Persistence Config (No UI text mention)
+local SAVE_FILE_NAME = "VenyxHub_Auth.json"
+local KEY_DURATION_SECONDS = 86400 -- 24 hours
+
+local function executeHub()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet(HUB_URL))()
+	end)
+	if not success then
+		warn("Failed to load Venyx Hub: " .. tostring(err))
+	end
+end
+
+local function saveKeySession(key)
+	if writefile then
+		pcall(function()
+			local payload = HttpService:JSONEncode({
+				key = key,
+				timestamp = os.time()
+			})
+			writefile(SAVE_FILE_NAME, payload)
+		end)
+	end
+end
+
+local function hasValidSavedSession()
+	if isfile and readfile then
+		local ok, result = pcall(function()
+			if not isfile(SAVE_FILE_NAME) then
+				return false
+			end
+			local raw = readfile(SAVE_FILE_NAME)
+			local data = HttpService:JSONDecode(raw)
+			if type(data) == "table" and data.key == CORRECT_KEY and type(data.timestamp) == "number" then
+				if (os.time() - data.timestamp) < KEY_DURATION_SECONDS then
+					return true
+				end
+			end
+			return false
+		end)
+		if ok and result == true then
+			return true
+		end
+	end
+	return false
+end
+
+-- Auto-load immediately if a valid saved session exists
+if hasValidSavedSession() then
+	executeHub()
+	return
+end
+
+-- Remove previous GUI if it exists
+if playerGui:FindFirstChild("VenyxKeySystemGui") then
+	playerGui.VenyxKeySystemGui:Destroy()
+end
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "VenyxKeySystemGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- Main Frame (Modern Dark Grey & Black)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 420, 0, 256)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -128)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+local defaultBorderColor = Color3.fromRGB(62, 62, 74)
+local errorBorderColor = Color3.fromRGB(225, 75, 85)
+local successBorderColor = Color3.fromRGB(140, 215, 165)
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = defaultBorderColor
+mainStroke.Thickness = 1.4
+mainStroke.Parent = mainFrame
+
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 15))
+})
+frameGradient.Rotation = 90
+frameGradient.Parent = mainFrame
+
+-- Title (Centered)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -32, 0, 32)
+titleLabel.Position = UDim2.new(0, 16, 0, 16)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Venyx Hub"
+titleLabel.TextColor3 = Color3.fromRGB(245, 245, 250)
+titleLabel.TextSize = 23
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+titleLabel.Parent = mainFrame
+
+-- Subtitle (Centered)
+local subtitleLabel = Instance.new("TextLabel")
+subtitleLabel.Name = "SubtitleLabel"
+subtitleLabel.Size = UDim2.new(1, -32, 0, 18)
+subtitleLabel.Position = UDim2.new(0, 16, 0, 46)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Text = "KEY AUTHENTICATION"
+subtitleLabel.TextColor3 = Color3.fromRGB(130, 130, 142)
+subtitleLabel.TextSize = 11
+subtitleLabel.Font = Enum.Font.GothamBold
+subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+subtitleLabel.Parent = mainFrame
+
+-- Centered Divider
+local divider = Instance.new("Frame")
+divider.Name = "Divider"
+divider.Size = UDim2.new(0, 124, 0, 1)
+divider.Position = UDim2.new(0.5, -62, 0, 72)
+divider.BackgroundColor3 = Color3.fromRGB(48, 48, 58)
+divider.BorderSizePixel = 0
+divider.Parent = mainFrame
+
+-- Key Input Box
+local keyInput = Instance.new("TextBox")
+keyInput.Name = "KeyInput"
+keyInput.Size = UDim2.new(1, -36, 0, 42)
+keyInput.Position = UDim2.new(0, 18, 0, 84)
+keyInput.BackgroundColor3 = Color3.fromRGB(26, 26, 31)
+keyInput.BorderSizePixel = 0
+keyInput.PlaceholderText = "Enter your access key..."
+keyInput.PlaceholderColor3 = Color3.fromRGB(115, 115, 128)
+keyInput.Text = ""
+keyInput.TextColor3 = Color3.fromRGB(242, 242, 248)
+keyInput.TextSize = 14
+keyInput.Font = Enum.Font.GothamMedium
+keyInput.TextXAlignment = Enum.TextXAlignment.Center
+keyInput.ClearTextOnFocus = false
+keyInput.Parent = mainFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 9)
+inputCorner.Parent = keyInput
+
+local inputStroke = Instance.new("UIStroke")
+inputStroke.Color = Color3.fromRGB(54, 54, 64)
+inputStroke.Thickness = 1
+inputStroke.Parent = keyInput
+
+-- Modern Pill Status / Error Banner (Centered)
+local statusBanner = Instance.new("Frame")
+statusBanner.Name = "StatusBanner"
+statusBanner.Size = UDim2.new(1, -36, 0, 28)
+statusBanner.Position = UDim2.new(0, 18, 0, 134)
+statusBanner.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+statusBanner.BackgroundTransparency = 1
+statusBanner.BorderSizePixel = 0
+statusBanner.Parent = mainFrame
+
+local bannerCorner = Instance.new("UICorner")
+bannerCorner.CornerRadius = UDim.new(1, 0)
+bannerCorner.Parent = statusBanner
+
+local bannerStroke = Instance.new("UIStroke")
+bannerStroke.Color = Color3.fromRGB(70, 70, 82)
+bannerStroke.Thickness = 1
+bannerStroke.Transparency = 1
+bannerStroke.Parent = statusBanner
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, -20, 1, 0)
+statusLabel.Position = UDim2.new(0, 10, 0, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = ""
+statusLabel.TextColor3 = Color3.fromRGB(235, 235, 242)
+statusLabel.TextSize = 12
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+statusLabel.TextTransparency = 1
+statusLabel.Parent = statusBanner
+
+local function setBannerState(message, mode)
+	if message == "" then
+		TweenService:Create(statusBanner, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+		TweenService:Create(bannerStroke, TweenInfo.new(0.2), {Transparency = 1}):Play()
+		TweenService:Create(statusLabel, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+		task.delay(0.2, function()
+			if statusBanner.BackgroundTransparency == 1 then
+				statusLabel.Text = ""
+			end
+		end)
+		return
+	end
+
+	statusLabel.Text = message
+	statusLabel.TextTransparency = 1
+	statusBanner.BackgroundTransparency = 1
+	bannerStroke.Transparency = 1
+
+	if mode == "error" then
+		statusBanner.BackgroundColor3 = Color3.fromRGB(42, 18, 22)
+		bannerStroke.Color = Color3.fromRGB(195, 70, 82)
+		statusLabel.TextColor3 = Color3.fromRGB(255, 130, 140)
+	elseif mode == "success" then
+		statusBanner.BackgroundColor3 = Color3.fromRGB(18, 38, 26)
+		bannerStroke.Color = Color3.fromRGB(95, 195, 130)
+		statusLabel.TextColor3 = Color3.fromRGB(165, 240, 190)
+	else
+		statusBanner.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
+		bannerStroke.Color = Color3.fromRGB(120, 120, 136)
+		statusLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+	end
+
+	TweenService:Create(statusBanner, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 0.15
+	}):Play()
+	TweenService:Create(bannerStroke, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Transparency = 0.25
+	}):Play()
+	TweenService:Create(statusLabel, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		TextTransparency = 0
+	}):Play()
+end
+
+-- Check Key Button
+local checkButton = Instance.new("TextButton")
+checkButton.Name = "CheckButton"
+checkButton.Size = UDim2.new(0.5, -22, 0, 42)
+checkButton.Position = UDim2.new(0, 18, 0, 182)
+checkButton.BackgroundColor3 = Color3.fromRGB(222, 222, 230)
+checkButton.BorderSizePixel = 0
+checkButton.Text = "Check Key"
+checkButton.TextColor3 = Color3.fromRGB(15, 15, 18)
+checkButton.TextSize = 13
+checkButton.Font = Enum.Font.GothamBold
+checkButton.TextXAlignment = Enum.TextXAlignment.Center
+checkButton.AutoButtonColor = false
+checkButton.Parent = mainFrame
+
+local checkCorner = Instance.new("UICorner")
+checkCorner.CornerRadius = UDim.new(0, 9)
+checkCorner.Parent = checkButton
+
+-- Get Key Button
+local getKeyButton = Instance.new("TextButton")
+getKeyButton.Name = "GetKeyButton"
+getKeyButton.Size = UDim2.new(0.5, -22, 0, 42)
+getKeyButton.Position = UDim2.new(0.5, 4, 0, 182)
+getKeyButton.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+getKeyButton.BorderSizePixel = 0
+getKeyButton.Text = "Get Key"
+getKeyButton.TextColor3 = Color3.fromRGB(228, 228, 236)
+getKeyButton.TextSize = 13
+getKeyButton.Font = Enum.Font.GothamBold
+getKeyButton.TextXAlignment = Enum.TextXAlignment.Center
+getKeyButton.AutoButtonColor = false
+getKeyButton.Parent = mainFrame
+
+local getKeyCorner = Instance.new("UICorner")
+getKeyCorner.CornerRadius = UDim.new(0, 9)
+getKeyCorner.Parent = getKeyButton
+
+local getKeyStroke = Instance.new("UIStroke")
+getKeyStroke.Color = Color3.fromRGB(64, 64, 76)
+getKeyStroke.Thickness = 1
+getKeyStroke.Parent = getKeyButton
+
+-- Button Hover Tweens
+checkButton.MouseEnter:Connect(function()
+	TweenService:Create(checkButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundColor3 = Color3.fromRGB(245, 245, 250)
+	}):Play()
+end)
+checkButton.MouseLeave:Connect(function()
+	TweenService:Create(checkButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundColor3 = Color3.fromRGB(222, 222, 230)
+	}):Play()
+end)
+
+getKeyButton.MouseEnter:Connect(function()
+	TweenService:Create(getKeyButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundColor3 = Color3.fromRGB(48, 48, 58)
+	}):Play()
+end)
+getKeyButton.MouseLeave:Connect(function()
+	TweenService:Create(getKeyButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+	}):Play()
+end)
+
+-- Smooth Shake + Red Menu Border Glow on Invalid Key
+local isShaking = false
+local function triggerErrorFeedback(frame)
+	if isShaking then return end
+	isShaking = true
+
+	local originPos = frame.Position
+	local offsets = {6, -6, 4, -4, 2, -2, 0}
+	local shakeInfo = TweenInfo.new(0.045, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+
+	TweenService:Create(mainStroke, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Color = errorBorderColor,
+		Thickness = 2
+	}):Play()
+
+	for _, offset in ipairs(offsets) do
+		local tween = TweenService:Create(frame, shakeInfo, {
+			Position = originPos + UDim2.new(0, offset, 0, 0)
+		})
+		tween:Play()
+		tween.Completed:Wait()
+	end
+
+	frame.Position = originPos
+
+	task.delay(0.65, function()
+		TweenService:Create(mainStroke, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Color = defaultBorderColor,
+			Thickness = 1.4
+		}):Play()
+	end)
+
+	isShaking = false
+end
+
+-- Load Venyx Hub on Valid Key
+local function loadHub()
+	saveKeySession(CORRECT_KEY)
+	TweenService:Create(mainStroke, TweenInfo.new(0.2), {
+		Color = successBorderColor,
+		Thickness = 1.8
+	}):Play()
+	setBannerState("Access granted — loading Venyx Hub...", "success")
+	task.wait(0.5)
+	screenGui:Destroy()
+	executeHub()
+end
+
+-- Get Key Button Click
+getKeyButton.MouseButton1Click:Connect(function()
+	if setclipboard then
+		setclipboard(GET_KEY_LINK)
+		setBannerState("Get Key link copied to clipboard", "info")
+	else
+		setBannerState("Link: " .. GET_KEY_LINK, "info")
+	end
+end)
+
+-- Check Key Button Click
+checkButton.MouseButton1Click:Connect(function()
+	local enteredKey = keyInput.Text
+
+	if enteredKey == "" then
+		setBannerState("Please enter your key before continuing", "error")
+		task.spawn(triggerErrorFeedback, mainFrame)
+		return
+	end
+
+	if enteredKey == CORRECT_KEY then
+		loadHub()
+	else
+		keyInput.Text = ""
+		setBannerState("Invalid key — please try again", "error")
+		task.spawn(triggerErrorFeedback, mainFrame)
+	end
+end)
